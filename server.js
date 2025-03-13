@@ -11,10 +11,10 @@ app.use(bodyParser.json());
 
 // Sample Route
 app.get('/', (req, res) => {
-    res.send('Loupe Backend is running...');
+    res.send('Loupe Demo is running...');
 });
 
-// Start Server
+// Start the Server
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
