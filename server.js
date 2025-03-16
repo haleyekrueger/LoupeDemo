@@ -12,8 +12,7 @@ app.use(express.json());
 // ✅ Authentication Routes
 app.use('/api/auth', authRoutes);
 
-// Technique Routes
-app.use("/api/techniques", techniqueRoutes);
+app.use("/api", techniqueRoutes); // Mounts routes under /api
 
 // ✅ Server Health Check
 app.get('/', (req, res) => {

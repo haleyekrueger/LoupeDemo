@@ -28,3 +28,9 @@ CREATE TABLE IF NOT EXISTS user_favorites (
     FOREIGN KEY (technique_id) REFERENCES techniques(id) ON DELETE CASCADE,
     UNIQUE (user_id, technique_id) -- Prevent duplicate favorites
 );
+
+CREATE TABLE IF NOT EXISTS user_favorites (
+    user_id INT REFERENCES users(id) ON DELETE CASCADE,
+    technique_id INT REFERENCES techniques(id) ON DELETE CASCADE,
+    PRIMARY KEY (user_id, technique_id)
+);
