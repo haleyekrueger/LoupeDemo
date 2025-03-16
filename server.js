@@ -1,30 +1,33 @@
 const express = require('express');
-const app = express();
+const dotenv = require('dotenv');
+const authRoutes = require('./routes/auth');
 const pool = require('./db');
-require('dotenv').config();
+const techniqueRoutes = require("./routes/techniques"); 
 
-// Middleware
+dotenv.config();
+
+const app = express();
 app.use(express.json());
 
-// Import Routes
-const authRoutes = require('./routes/auth');
+// ✅ Authentication Routes
 app.use('/api/auth', authRoutes);
 
-// Protected Route
-const authenticateToken = require('./middleware/authMiddleware'); // Import middleware
+// Technique Routes
+app.use("/api/techniques", techniqueRoutes);
 
-app.get('/api/protected', authenticateToken, (req, res) => {
-    res.json({ message: "Welcome to the protected route!" });
+// ✅ Server Health Check
+app.get('/', (req, res) => {
+    res.send('Loupe Backend is running...');
 });
 
-
-// Only start the server if NOT in test mode
-if (process.env.NODE_ENV !== 'test') {
-    const PORT = process.env.PORT || 5001;
-    app.listen(PORT, () => {
+// ✅ Start Server
+const PORT = process.env.PORT || 5001;
+app.listen(PORT, async () => {
+    try {
+        await pool.connect();
         console.log(`✅ Server running on port ${PORT}`);
-    });
-}
+    } catch (err) {
+        console.error('❌ Database connection failed:', err);
+    }
+});
 
-// Export `app` for Jest testing
-module.exports = app;

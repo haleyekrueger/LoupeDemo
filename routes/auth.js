@@ -1,58 +1,86 @@
 const express = require('express');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const pool = require('../db'); // Import database connection
-require('dotenv').config();
+const pool = require('../db');
+const authenticateToken = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
-// User Signup Route
+// ✅ User Registration Route
 router.post('/signup', async (req, res) => {
+    const { username, email, password } = req.body;
+
     try {
-        const { username, email, password } = req.body;
+        console.log("Received signup request:", username, email);
 
-        // Check if user already exists
-        const userExists = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
-        if (userExists.rows.length > 0) {
-            return res.status(400).json({ error: "User already exists" });
-        }
+        // Hash password
+        const hashedPassword = await bcrypt.hash(password, 10);
+        console.log("Hashed Password:", hashedPassword);
 
-        // Hash password before storing in database
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
-
-        // Insert new user into database
+        // Insert user into database
         const newUser = await pool.query(
-            "INSERT INTO users (username, email, password) VALUES ($1, $2, $3) RETURNING id, username, email",
+            'INSERT INTO users (username, email, password) VALUES ($1, $2, $3) RETURNING id, username, email',
             [username, email, hashedPassword]
         );
 
-        res.json(newUser.rows[0]);
+        res.status(201).json(newUser.rows[0]);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('Error signing up user:', err);
+        res.status(500).json({ error: 'Server error during user registration.' });
     }
 });
 
-// User Login Route
 router.post('/login', async (req, res) => {
+    const { email, password } = req.body;
+
     try {
-        const { email, password } = req.body;
+        console.log("🔍 Received login request for:", email);
 
-        // Check if user exists
-        const user = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
-        if (user.rows.length === 0) return res.status(400).json({ error: "Invalid credentials" });
+        const user = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
 
-        // Compare passwords
-        const isMatch = await bcrypt.compare(password, user.rows[0].password);
-        if (!isMatch) return res.status(400).json({ error: "Invalid credentials" });
+        if (user.rows.length === 0) {
+            console.log("❌ No user found with this email");
+            return res.status(400).json({ error: 'Invalid email or password' });
+        }
 
-        // Generate JWT Token
-        const token = jwt.sign({ userId: user.rows[0].id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+        console.log("🛠 User found in DB:", user.rows[0]);
 
+        // ✅ Ensure both password inputs are strings
+        const storedPassword = String(user.rows[0].password);
+        const inputPassword = String(password);
+
+        console.log("🔑 Comparing passwords...");
+        console.log("Stored Password (Hashed):", storedPassword);
+        console.log("Input Password (Plain):", inputPassword);
+
+        const isMatch = await bcrypt.compare(inputPassword, storedPassword);
+        if (!isMatch) {
+            console.log("❌ Password mismatch");
+            return res.status(400).json({ error: "Invalid email or password" });
+        }
+
+        // ✅ Generate JWT token
+        const token = jwt.sign(
+            { id: user.rows[0].id, email: user.rows[0].email, is_admin: user.rows[0].is_admin },
+            process.env.JWT_SECRET,
+            { expiresIn: '1h' }
+        );
+
+        console.log("✅ Login successful. Sending token...");
         res.json({ token });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('❌ Error logging in user:', err);
+        res.status(500).json({ error: 'Server error during login.' });
     }
 });
+
+
+
+
+// ✅ Protected Route Example
+router.get('/protected', authenticateToken, (req, res) => {
+    res.json({ message: 'Welcome to the protected route!', user: req.user });
+});
+
 
 module.exports = router;
