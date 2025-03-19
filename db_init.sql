@@ -1,3 +1,8 @@
+-- loupe-db
+-- loupe_admin
+-- gohcyw-sutnu9-jAnfef
+-- loupe-db.c7046gc2yebd.us-west-1.rds.amazonaws.com
+
 -- Create the users table
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
