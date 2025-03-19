@@ -19,10 +19,14 @@ router.get("/generate-presigned-url", async (req, res) => {
 
         console.log("📥 Received request for pre-signed URL");
         console.log("🔎 Query Params:", req.query);
-        
+
+        // 🔹 Append a timestamp to make the filename unique
+        const timestamp = Date.now();
+        const uniqueFileName = `${timestamp}_${fileName}`;
+
         const params = {
             Bucket: process.env.S3_BUCKET_NAME,
-            Key: `patterns/${fileName}`, // Organize uploads into a "patterns" folder
+            Key: `patterns/${uniqueFileName}`, // Unique file path
             Expires: 300, // URL valid for 5 minutes (300 seconds)
             ContentType: fileType
         };
@@ -30,9 +34,9 @@ router.get("/generate-presigned-url", async (req, res) => {
         // Generate pre-signed URL
         const uploadURL = await s3.getSignedUrlPromise("putObject", params);
 
-        res.json({ uploadURL });
+        res.json({ uploadURL, uniqueFileName }); // Return the unique filename for reference
     } catch (error) {
-        console.error("Error generating pre-signed URL:", error);
+        console.error("❌ Error generating pre-signed URL:", error);
         res.status(500).json({ error: "Error generating pre-signed URL" });
     }
 });
